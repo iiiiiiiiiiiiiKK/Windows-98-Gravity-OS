@@ -1,1 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Windows 98 - Gravity.exe</title>
+    <style>
+        /* --- Windows 98 Design System V7.0 (Fixed) --- */
+        :root {
+            --win-gray: #c0c0c0;
+            --win-dark-gray: #808080;
+            --win-light-gray: #ffffff;
+            --win-black: #000000;
+            --win-blue: #000080;
+            --win-teal: #008080;
+        }
+
+        @font-face {
+            font-family: 'Pixelated MS Sans';
+            src: local('MS Sans Serif'), local('Arial'), sans-serif;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--win-teal);
+            font-family: 'Pixelated MS Sans', Tahoma, sans-serif;
+            font-size: 12px;
+            user-select: none; 
+            -webkit-user-select: none;
+            cursor: default;
+        }
+
+        /* CRT 扫描线滤镜 */
+        body::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(
+                to bottom,
+                rgba(0,0,0,0.05),
+                rgba(0,0,0,0.05) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 999999;
+            opacity: 0.3; /* 稍微调低透明度，防止太暗 */
+        }
+
+        /* 基础组件样式 */
+        .win-bevel-out {
+            border-top: 2px solid var(--win-light-gray);
+            border-left: 2px solid var(--win-light-gray);
+            border-right: 2px solid var(--win-black);
+            border-bottom: 2px solid var(--win-black);
+            background-color: var(--win-gray);
+            box-shadow: inset -1px -1px 0px var(--win-dark-gray), inset 1px 1px 0px #dfdfdf;
+        }
+
+        .win-bevel-in {
+            border-top: 2px solid var(--win-dark-gray);
+            border-left: 2px solid var(--win-dark-gray);
+            border-right: 2px solid var(--win-light-gray);
+            border-bottom: 2px solid var(--win-light-gray);
+            background-color: #ffffff;
+            box-shadow: inset 1px 1px 0px var(--win-black), inset -1px -1px 0px #dfdfdf;
+        }
+
+        .win-button {
+            background: var(--win-gray);
+            border-top: 1px solid var(--win-light-gray);
+            border-left: 1px solid var(--win-light-gray);
+            border-right: 1px solid var(--win-black);
+            border-bottom: 1px solid var(--win-black);
+            box-shadow: inset -1px -1px 0px var(--win-dark-gray), inset 1px 1px 0px #dfdfdf;
+            color: var(--win-black);
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            outline: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 60px;
+            pointer-events: auto;
+            position: relative;
+        }
+        
+        .win-button:active {
+            border-top: 1px solid var(--win-black);
+            border-left: 1px solid var(--win-black);
+            border-right: 1px solid var(--win-light-gray);
+            border-bottom: 1px solid var(--win-light-gray);
+            padding: 5px 7px 3px 9px;
+            background: #d4d4d4;
+        }
+
+        /* 桌面布局 */
+        #desktop {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: calc(100% - 28px);
+            padding: 15px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: flex-start;
+            z-index: 1;
+        }
+
+        .desktop-icon {
+            width: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            cursor: pointer;
+            text-align: center;
+            padding: 5px; 
+            border: 1px solid transparent;
+        }
+        .desktop-icon:hover {
+            border: 1px dotted white;
+            background: rgba(0,0,80, 0.2);
+        }
+        .desktop-icon svg {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 4px;
+            filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.5));
+        }
+
+        /* 窗口系统 */
+        .win-window {
+            position: absolute;
+            background-color: var(--win-gray);
+            padding: 2px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.5);
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100; /* 默认层级 */
+        }
+        
+        /* 模态对话框层级最高 */
+        .win-window.modal { z-index: 1000; }
+
+        .title-bar {
+            background: linear-gradient(to right, var(--win-blue), #1084d0);
+            color: white;
+            padding: 3px 4px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 18px;
+            cursor: default;
+        }
+
+        .close-btn {
+            width: 16px; height: 14px;
+            line-height: 10px;
+            font-family: sans-serif;
+            font-weight: bold;
+            padding: 0;
+            min-width: 16px;
+        }
+
+        /* 游戏窗口 */
+        #game-window { width: 800px; height: 600px; max-width: 96%; max-height: 80%; top: 48%; }
+        #game-container {
+            flex-grow: 1;
+            background-color: #000;
+            position: relative;
+            margin-top: 2px;
+            overflow: hidden;
+            /* 鼠标样式 */
+            cursor: crosshair; 
+        }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* 游戏 UI */
+        #game-ui-bar {
+            position: absolute; top: 6px; left: 6px;
+            display: flex; flex-wrap: wrap; gap: 6px;
+            pointer-events: none; z-index: 10;
+        }
+
+        /* BIOS 屏幕 */
+        #bios-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: black; color: #ccc;
+            font-family: 'Courier New', monospace; font-weight: bold;
+            padding: 20px; box-sizing: border-box;
+            z-index: 999990; display: none;
+            flex-direction: column; pointer-events: all;
+            font-size: 14px; line-height: 1.5;
+        }
+
+        /* 拨号网络对话框 */
+        .dial-icon { width:48px; height:48px; float:left; margin-right:10px; }
+        .input-row { margin-bottom: 8px; display: flex; align-items: center; }
+        .input-label { width: 80px; }
+        .win-input { border: 1px solid gray; box-shadow: inset 1px 1px 0 black; padding: 2px; width: 150px; font-family: inherit; }
+
+        /* 消息提示框 */
+        .msg-icon { width: 32px; height: 32px; margin-right: 15px; }
+        .msg-content { display: flex; align-items: center; padding: 15px; min-width: 250px; }
+        
+        /* 任务栏 */
+        #taskbar {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 28px;
+            background: var(--win-gray); border-top: 2px solid var(--win-light-gray);
+            display: flex; align-items: center; padding: 2px; box-sizing: border-box;
+            z-index: 10000;
+        }
+        #time-display {
+            margin-left: auto; margin-right: 2px; padding: 2px 10px;
+            border: 1px solid var(--win-dark-gray); background: var(--win-gray);
+            box-shadow: inset 1px 1px 0 white, inset -1px -1px 0 var(--win-dark-gray);
+            min-width: 60px; text-align: center;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <!-- 桌面环境 -->
+    <div id="desktop">
+        <!-- 游戏 -->
+        <div class="desktop-icon" ondblclick="openGame()" ontouchend="openGame()">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="8" y="8" width="16" height="16" fill="black"/>
+                <rect x="10" y="6" width="12" height="2" fill="black"/>
+                <rect x="10" y="24" width="12" height="2" fill="black"/>
+                <rect x="6" y="10" width="2" height="12" fill="black"/>
+                <rect x="24" y="10" width="2" height="12" fill="black"/>
+                <circle cx="16" cy="16" r="6" fill="#00FFFF"/>
+                <path d="M4 16h24" stroke="yellow" stroke-width="2"/>
+            </svg>
+            <span>Gravity.exe</span>
+        </div>
+
+        <!-- 网上邻居 -->
+        <div class="desktop-icon" onclick="openDialup()">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="6" width="12" height="10" fill="#C0C0C0" stroke="black"/>
+                <rect x="18" y="6" width="12" height="10" fill="#C0C0C0" stroke="black"/>
+                <rect x="4" y="8" width="8" height="6" fill="#008080"/>
+                <rect x="20" y="8" width="8" height="6" fill="#008080"/>
+                <path d="M8 16v4h16v-4" stroke="black" fill="none"/>
+                <rect x="6" y="22" width="20" height="2" fill="#008080"/>
+            </svg>
+            <span>网上邻居</span>
+        </div>
+        
+        <!-- 回收站 -->
+        <div class="desktop-icon" onclick="trashTalk()">
+            <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                <rect x="6" y="6" width="20" height="2" fill="white" stroke="black"/>
+                <rect x="8" y="8" width="16" height="18" fill="transparent" stroke="black"/>
+                <line x1="12" y1="10" x2="12" y2="24" stroke="black"/>
+                <line x1="16" y1="10" x2="16" y2="24" stroke="black"/>
+                <line x1="20" y1="10" x2="20" y2="24" stroke="black"/>
+                <!-- 简单的垃圾图形 -->
+                <rect x="9" y="18" width="4" height="4" fill="gray"/>
+                <rect x="15" y="20" width="3" height="3" fill="gray"/>
+            </svg>
+            <span>回收站</span>
+        </div>
+    </div>
+
+    <!-- 1. 游戏窗口 (修复：移除默认 hidden，确保一进来就可见) -->
+    <div id="game-window" class="win-window win-bevel-out">
+        <div class="title-bar">
+            <div style="display:flex; align-items:center;">
+                <svg viewBox="0 0 16 16" fill="white" xmlns="http://www.w3.org/2000/svg" style="width:16px;height:16px;margin-right:6px;">
+                    <circle cx="8" cy="8" r="6" stroke="white" stroke-width="2" fill="none"/>
+                    <circle cx="8" cy="8" r="2" fill="white"/>
+                </svg>
+                <span>Gravity Synthesizer - [运行中]</span>
+            </div>
+            <button class="close-btn win-button" onclick="closeGame()" onmousedown="event.stopPropagation()">X</button>
+        </div>
+        
+        <div id="game-container" class="win-bevel-in">
+            <canvas id="gameCanvas"></canvas>
+            
+            <!-- 游戏内 UI -->
+            <div id="game-ui-bar">
+                <div class="win-bevel-out" style="padding: 2px 4px; background:var(--win-gray); color:black; font-weight:bold; display:flex; align-items:center; pointer-events:auto; height: 22px;">
+                    Score: <span style="background:white; border:1px solid gray; padding:0 4px; margin-left:4px; font-family:monospace;" id="score">0</span>
+                </div>
+                <button id="audioBtn" class="win-button" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
+                    <span id="audio-icon">🔇</span> <span id="audio-text">音效</span>
+                </button>
+                <button id="speedBtn" class="win-button" style="color: blue;" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
+                    <span id="speed-text">⚡ 1x</span>
+                </button>
+                <button id="bsodBtn" class="win-button" style="color: darkred;" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
+                    <span id="bsod-text">💣 开启</span>
+                </button>
+                <button id="rebootBtn" class="win-button" style="font-weight:bold;" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
+                    <span>🔄 重启</span>
+                </button>
+            </div>
+            <div id="tutorial" style="position:absolute; bottom:20px; width:100%; text-align:center; pointer-events:none;">
+                <span style="background:#ffffc0; border:1px solid black; padding:4px; font-size:11px; color:black; box-shadow: 2px 2px 0 black;">
+                    提示: 长按鼠标产生引力 | 点击"重启"清空分数
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 拨号连接对话框 (模态) -->
+    <div id="dial-window" class="win-window win-bevel-out modal hidden" style="width: 350px;">
+        <div class="title-bar">
+            <span>连接到 游戏网络...</span>
+            <button class="close-btn win-button" onclick="closeDialup()" onmousedown="event.stopPropagation()">X</button>
+        </div>
+        <div style="padding: 15px;">
+            <svg class="dial-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 16h28M16 2v28" stroke="transparent"/> <!-- spacer -->
+                <rect x="4" y="4" width="24" height="20" fill="#C0C0C0" stroke="black"/>
+                <rect x="8" y="8" width="16" height="8" fill="white" stroke="gray"/>
+                <rect x="6" y="26" width="20" height="2" fill="black"/>
+            </svg>
+            <div style="margin-left: 60px;">
+                <div class="input-row">
+                    <span class="input-label">用户名:</span>
+                    <input type="text" value="User_98" class="win-input" disabled>
+                </div>
+                <div class="input-row">
+                    <span class="input-label">密码:</span>
+                    <input type="password" value="******" class="win-input" disabled>
+                </div>
+                <div class="input-row">
+                    <span class="input-label">电话号码:</span>
+                    <input type="text" value="555-0199" class="win-input" disabled>
+                </div>
+            </div>
+            <div style="margin-top:20px; border-top: 1px solid white; box-shadow: 0 -1px 0 gray; padding-top:10px; display:flex; justify-content:flex-end; gap:10px;">
+                <button class="win-button" style="width:80px;" onclick="startConnection()" onmousedown="event.stopPropagation()">连接</button>
+                <button class="win-button" style="width:80px;" onclick="closeDialup()" onmousedown="event.stopPropagation()">取消</button>
+            </div>
+            <div id="dial-status" style="margin-top:10px; height:20px; color:blue; font-style:italic;"></div>
+        </div>
+    </div>
+
+    <!-- 3. 网上邻居窗口 -->
+    <div id="net-window" class="win-window win-bevel-out modal hidden" style="width: 320px; top:40%; left:55%;">
+        <div class="title-bar">
+            <span>网上邻居</span>
+            <button class="close-btn win-button" onclick="closeNet()" onmousedown="event.stopPropagation()">X</button>
+        </div>
+        <div class="win-bevel-in" style="background:white; height: 180px; padding:10px; overflow-y:auto; color:black;">
+            <p style="color:green; margin:0 0 5px 0;">状态: 已连接 (28.8 Kbps)</p>
+            <hr style="border:0; border-top:1px dashed gray; margin:5px 0;">
+            <table style="width:100%; font-size:11px; border-collapse: collapse;">
+                <tr style="background:#ddd;"><th>排名</th><th>用户</th><th>分数</th></tr>
+                <tr><td>1</td><td>Admin</td><td>99999</td></tr>
+                <tr><td>2</td><td>BillG</td><td>58000</td></tr>
+                <tr><td>3</td><td>DoomGuy</td><td>6660</td></tr>
+                <tr><td>4</td><td>[你]</td><td>0</td></tr>
+            </table>
+            <p style="margin-top:10px; color:gray; font-size:10px;">* 正在等待服务器响应...</p>
+        </div>
+    </div>
+
+    <!-- 4. 通用消息提示框 (替代 Alert) -->
+    <div id="msg-window" class="win-window win-bevel-out modal hidden" style="min-width: 300px;">
+        <div class="title-bar">
+            <span id="msg-title">Error</span>
+            <button class="close-btn win-button" onclick="closeMsg()" onmousedown="event.stopPropagation()">X</button>
+        </div>
+        <div class="msg-content">
+            <svg class="msg-icon" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="16" cy="16" r="14" fill="#A00" stroke="black"/>
+                <path d="M10 10l12 12M22 10l-12 12" stroke="white" stroke-width="4"/>
+            </svg>
+            <span id="msg-text" style="max-width:200px;">Unknown Error</span>
+        </div>
+        <div style="padding: 10px; display:flex; justify-content:center;">
+            <button class="win-button" style="width:80px;" onclick="closeMsg()" onmousedown="event.stopPropagation()">确定</button>
+        </div>
+    </div>
+
+    <!-- BIOS 模拟界面 -->
+    <div id="bios-screen">
+        <div style="margin-bottom:20px;">
+            <span style="color:white;">Award Modular BIOS v4.51PG, An Energy Star Ally</span><br>
+            Copyright (C) 1984-98, Award Software, Inc.
+        </div>
+        <div>PENTIUM II - MMX CPU at 233MHz</div>
+        <div>Memory Test : <span id="mem-test">0</span>K OK</div>
+        <div id="bios-details" style="display:none; margin-top:10px;">
+            <br>
+            Award Plug and Play BIOS Extension v1.0A<br>
+            Initialize Plug and Play Cards...<br>
+            PNP Init Completed<br><br>
+            Detecting Primary Master ... QUANTUM FIREBALL<br>
+            Detecting Secondary Master ... CD-ROM DRIVE<br>
+            <br>
+            Verifying DMI Pool Data .........
+            <br><br>
+            Starting Windows 98...
+        </div>
+    </div>
+
+    <!-- 任务栏 -->
+    <div id="taskbar" class="win-bevel-out">
+        <button id="start-btn" class="win-button" style="font-weight:bold; padding:2px 6px; height:22px;">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="margin-right:4px;">
+                <rect x="0" y="0" width="6" height="6" fill="#E85942"/><rect x="7" y="0" width="6" height="6" fill="#66CC60"/>
+                <rect x="0" y="7" width="6" height="6" fill="#4886E0"/><rect x="7" y="7" width="6" height="6" fill="#F4CF36"/>
+            </svg>
+            开始
+        </button>
+        <div class="win-bevel-in" style="margin-left:4px; padding:2px 6px; background:var(--win-gray); border:none; box-shadow:inset 1px 1px 0 black; display:flex; align-items:center;">
+            <div style="width:12px; height:12px; background:gray; margin-right:4px;"></div>
+            Gravity.exe
+        </div>
+        <div style="flex-grow:1;"></div>
+        <div id="time-display" class="win-bevel-in">12:00 PM</div>
+    </div>
+
+    <script>
+        // --- 核心全局变量 ---
+        const wins = {}; // 这里定义，onload 填充
+
+        // --- 系统功能 ---
+        // 时间更新
+        setInterval(() => {
+            const now = new Date();
+            let h = now.getHours();
+            const m = now.getMinutes().toString().padStart(2, '0');
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            const el = document.getElementById('time-display');
+            if(el) el.textContent = `${h}:${m} ${ampm}`;
+        }, 1000);
+
+        // --- 游戏引擎配置 ---
+        const CONFIG = {
+            friction: 0.98, gravity: 0.5, bounce: 0.7, baseSpawnRate: 100,
+            colors: ['#c0c0c0', '#008080', '#000080', '#808000', '#800080', '#ff0000', '#ffff00', '#ffffff']
+        };
+
+        const AudioEngine = {
+            ctx: null, enabled: false,
+            init() {
+                if (!this.ctx) {
+                    try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } 
+                    catch(e) {}
+                }
+                if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+            },
+            play(freq, type='square') {
+                if(!this.enabled || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(); osc.stop(this.ctx.currentTime + 0.3);
+                } catch(e) {}
+            },
+            playDialSound() {
+                if(!this.ctx) return;
+                const t = this.ctx.currentTime;
+                try {
+                    const o1 = this.ctx.createOscillator();
+                    const o2 = this.ctx.createOscillator();
+                    const g = this.ctx.createGain();
+                    o1.frequency.value = 350; o2.frequency.value = 440;
+                    g.gain.value = 0.1;
+                    o1.connect(g); o2.connect(g); g.connect(this.ctx.destination);
+                    o1.start(t); o2.start(t); o1.stop(t+0.5); o2.stop(t+0.5);
+
+                    setTimeout(() => {
+                        const o3 = this.ctx.createOscillator();
+                        const g3 = this.ctx.createGain();
+                        o3.type = 'sawtooth';
+                        o3.frequency.setValueAtTime(1000, this.ctx.currentTime);
+                        o3.frequency.linearRampToValueAtTime(3000, this.ctx.currentTime + 1.5);
+                        g3.gain.value = 0.05;
+                        o3.connect(g3); g3.connect(this.ctx.destination);
+                        o3.start(); o3.stop(this.ctx.currentTime + 1.5);
+                    }, 600);
+                } catch(e) {}
+            },
+            stopDial() { /* 可选 */ },
+            bsod() {
+                if(!this.enabled || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(100, this.ctx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(50, this.ctx.currentTime + 0.5);
+                    gain.gain.value = 0.2;
+                    gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.5);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(); osc.stop(this.ctx.currentTime + 0.5);
+                } catch(e) {}
+            }
+        };
+
+        const state = {
+            orbs: [], particles: [], score: 0,
+            width: 800, height: 600,
+            pointer: { x:0, y:0, down:false },
+            frame: 0, gameActive: true,
+            speedLevel: 1, currentSpawnRate: 100, bsodEnabled: true
+        };
+
+        let canvas, ctx, scoreEl;
+
+        // 实体类
+        class Orb {
+            constructor(x, y, tier) {
+                this.x = x; this.y = y; this.tier = tier;
+                this.bsod = (tier === -1);
+                this.r = this.bsod ? 24 : 10 + tier*4;
+                this.vx = (Math.random()-0.5)*2; this.vy = (Math.random()-0.5)*2;
+                this.color = this.bsod ? '#0000AA' : CONFIG.colors[tier % CONFIG.colors.length];
+            }
+            update() {
+                if(state.pointer.down) {
+                    const dx = state.pointer.x - this.x; const dy = state.pointer.y - this.y;
+                    const d = Math.sqrt(dx*dx + dy*dy);
+                    if(d > 10) {
+                        const f = (this.bsod ? 0.1 : 0.5) / (this.r * 0.1); 
+                        this.vx += (dx/d)*f; this.vy += (dy/d)*f;
+                    }
+                }
+                this.vx *= CONFIG.friction; this.vy *= CONFIG.friction;
+                this.x += this.vx; this.y += this.vy;
+                
+                if(this.x < this.r) { this.x = this.r; this.vx *= -CONFIG.bounce; }
+                if(this.x > state.width - this.r) { this.x = state.width - this.r; this.vx *= -CONFIG.bounce; }
+                if(this.y < this.r) { this.y = this.r; this.vy *= -CONFIG.bounce; }
+                if(this.y > state.height - this.r) { this.y = state.height - this.r; this.vy *= -CONFIG.bounce; }
+            }
+            draw() {
+                if(this.bsod) {
+                    ctx.fillStyle = this.color; ctx.fillRect(this.x-this.r, this.y-this.r, this.r*2, this.r*2);
+                    ctx.strokeStyle = 'white'; ctx.strokeRect(this.x-this.r, this.y-this.r, this.r*2, this.r*2);
+                    ctx.fillStyle = 'white'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
+                    ctx.fillText('ERR', this.x, this.y-2); ctx.fillText('0x0E', this.x, this.y+8);
+                } else {
+                    ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+                    ctx.fillStyle = this.color; ctx.fill();
+                    ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.stroke();
+                    ctx.fillStyle = 'white'; ctx.fillRect(this.x - this.r/2, this.y - this.r/2, 3, 3);
+                }
+            }
+        }
+
+        class Part {
+            constructor(x, y, c) {
+                this.x=x; this.y=y; this.c=c;
+                this.vx=(Math.random()-0.5)*10; this.vy=(Math.random()-0.5)*10; this.life=1.0;
+            }
+            update() { this.x+=this.vx; this.y+=this.vy; this.life-=0.05; }
+            draw() {
+                ctx.globalAlpha=this.life; ctx.fillStyle=this.c;
+                ctx.fillRect(this.x, this.y, 4, 4); ctx.globalAlpha=1;
+            }
+        }
+
+        function spawn(tier) { state.orbs.push(new Orb(Math.random()*state.width, Math.random()*state.height, tier)); }
+        function explode(x, y, c) { for(let i=0; i<8; i++) state.particles.push(new Part(x, y, c)); }
+
+        function check() {
+            for(let i=0; i<state.orbs.length; i++) {
+                for(let j=i+1; j<state.orbs.length; j++) {
+                    let a = state.orbs[i], b = state.orbs[j];
+                    let dx = b.x - a.x, dy = b.y - a.y;
+                    let dist = Math.sqrt(dx*dx+dy*dy);
+                    let min = a.r + b.r;
+                    
+                    if(dist < min) {
+                        let angle = Math.atan2(dy, dx);
+                        let tx = a.x + Math.cos(angle)*min, ty = a.y + Math.sin(angle)*min;
+                        let ax = (tx-b.x)*0.05, ay = (ty-b.y)*0.05;
+                        a.vx -= ax; a.vy -= ay; b.vx += ax; b.vy += ay;
+
+                        if(a.bsod || b.bsod) {
+                            let bsod = a.bsod ? a : b;
+                            state.orbs.splice(i, 1); a.dead = true; b.dead = true;
+                            AudioEngine.bsod(); explode(bsod.x, bsod.y, 'blue');
+                            state.score += 500;
+                            canvas.style.background = 'blue'; setTimeout(()=>canvas.style.background='black', 100);
+                            return; 
+                        }
+                        if(a.tier === b.tier && !a.bsod && !b.bsod) {
+                            a.dead = true; b.dead = true;
+                            state.score += (a.tier+1)*10; scoreEl.innerText = state.score;
+                            AudioEngine.play(220 + a.tier*50); explode(a.x, a.y, a.color);
+                            state.orbs.push(new Orb((a.x+b.x)/2, (a.y+b.y)/2, a.tier+1));
+                        }
+                    }
+                }
+            }
+            state.orbs = state.orbs.filter(o => !o.dead);
+        }
+
+        function loop() {
+            if(!state.gameActive) return;
+            
+            // 确保尺寸同步
+            const container = document.getElementById('game-container');
+            if(container) {
+                const rect = container.getBoundingClientRect();
+                if(canvas.width !== rect.width || canvas.height !== rect.height) {
+                    canvas.width = rect.width; canvas.height = rect.height;
+                    state.width = rect.width; state.height = rect.height;
+                }
+            }
+
+            ctx.fillStyle = 'black'; ctx.fillRect(0,0,state.width, state.height);
+            ctx.strokeStyle = '#003300'; ctx.lineWidth=1; ctx.beginPath();
+            for(let i=0; i<state.width; i+=40) { ctx.moveTo(i,0); ctx.lineTo(i, state.height); }
+            for(let i=0; i<state.height; i+=40) { ctx.moveTo(0,i); ctx.lineTo(state.width, i); }
+            ctx.stroke();
+
+            if(state.pointer.down) {
+                ctx.strokeStyle = '#0f0';
+                ctx.strokeRect(state.pointer.x-10, state.pointer.y-10, 20, 20);
+                ctx.beginPath(); ctx.moveTo(state.pointer.x, state.pointer.y-20); ctx.lineTo(state.pointer.x, state.pointer.y+20); ctx.moveTo(state.pointer.x-20, state.pointer.y); ctx.lineTo(state.pointer.x+20, state.pointer.y); ctx.stroke();
+            }
+
+            check();
+            state.orbs.forEach(o => { o.update(); o.draw(); });
+            state.particles.forEach(p => { p.update(); p.draw(); });
+            state.particles = state.particles.filter(p => p.life>0);
+
+            state.frame++;
+            if(state.frame % state.currentSpawnRate === 0 && state.orbs.length < 50) {
+                if(state.bsodEnabled && Math.random()<0.08) spawn(-1); else spawn(0);
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        // --- 全局函数暴露给 HTML ---
+        window.openGame = function() { wins.game.classList.remove('hidden'); if(!state.gameActive) { state.gameActive=true; loop(); } }
+        window.closeGame = function() { wins.game.classList.add('hidden'); state.gameActive=false; }
+        
+        window.openDialup = function() { wins.dial.classList.remove('hidden'); document.getElementById('dial-status').innerText = ""; }
+        window.closeDialup = function() { wins.dial.classList.add('hidden'); if(AudioEngine.ctx) AudioEngine.stopDial(); }
+        
+        window.startConnection = function() {
+            const status = document.getElementById('dial-status');
+            status.innerText = "正在拨号 555-0199...";
+            AudioEngine.init();
+            AudioEngine.playDialSound();
+            setTimeout(() => {
+                status.innerText = "正在验证用户名和密码...";
+                setTimeout(() => {
+                    status.innerText = "正在注册网络上的计算机...";
+                    setTimeout(() => {
+                        window.closeDialup();
+                        wins.net.classList.remove('hidden');
+                    }, 1500);
+                }, 1500);
+            }, 2000);
+        }
+        window.closeNet = function() { wins.net.classList.add('hidden'); }
+
+        const trashJokes = [
+            "错误：无法删除 '周一'。访问被拒绝。",
+            "回收站已满。是否删除回收站以释放空间？",
+            "系统正在忙于无所事事，请稍后再试。",
+            "找不到文件 'My_Hopes_and_Dreams.exe'。",
+            "严重错误：您的操作太快了，CPU 需要休息。",
+            "404 Error: Trash not found."
+        ];
+        window.trashTalk = function() {
+            const joke = trashJokes[Math.floor(Math.random() * trashJokes.length)];
+            window.showMsg("Explorer", joke);
+        }
+
+        window.showMsg = function(title, text) {
+            document.getElementById('msg-title').innerText = title;
+            document.getElementById('msg-text').innerText = text;
+            wins.msg.classList.remove('hidden');
+            if(AudioEngine.enabled) AudioEngine.play(150, 'sawtooth');
+        }
+        window.closeMsg = function() { wins.msg.classList.add('hidden'); }
+
+        window.systemReboot = function() {
+            const bios = document.getElementById('bios-screen');
+            const mem = document.getElementById('mem-test');
+            const details = document.getElementById('bios-details');
+            
+            state.gameActive = false;
+            state.orbs = []; state.particles = []; state.score = 0;
+            document.getElementById('score').innerText = "0";
+            state.speedLevel = 1; state.currentSpawnRate = CONFIG.baseSpawnRate;
+            document.getElementById('speed-text').innerText = "⚡ 1x";
+            
+            bios.style.display = 'flex'; details.style.display = 'none'; mem.innerText = '0';
+            
+            if(AudioEngine.enabled) AudioEngine.play(800, 'square'); 
+
+            let memory = 0;
+            const memInterval = setInterval(() => {
+                memory += 4096;
+                mem.innerText = memory;
+                if(memory >= 65536) {
+                    clearInterval(memInterval);
+                    details.style.display = 'block';
+                    setTimeout(() => {
+                        bios.style.display = 'none';
+                        if(!wins.game.classList.contains('hidden')) {
+                            state.gameActive = true;
+                            for(let i=0; i<5; i++) spawn(0);
+                            loop();
+                        }
+                    }, 2500);
+                }
+            }, 50);
+        }
+
+        // --- 初始化 ---
+        window.onload = function() {
+            // 初始化 DOM 引用
+            wins.game = document.getElementById('game-window');
+            wins.dial = document.getElementById('dial-window');
+            wins.net = document.getElementById('net-window');
+            wins.msg = document.getElementById('msg-window');
+            
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            scoreEl = document.getElementById('score');
+
+            // 输入处理绑定
+            const container = document.getElementById('game-container');
+            const updatePtr = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const cx = e.touches ? e.touches[0].clientX : e.clientX;
+                const cy = e.touches ? e.touches[0].clientY : e.clientY;
+                state.pointer.x = cx - rect.left; state.pointer.y = cy - rect.top;
+            };
+            
+            const startHandler = (e) => {
+                if(e.target.tagName === 'BUTTON' || e.target.parentElement.tagName === 'BUTTON') return;
+                state.pointer.down = true; updatePtr(e); 
+                document.getElementById('tutorial').style.display = 'none';
+            };
+
+            container.addEventListener('mousedown', startHandler);
+            container.addEventListener('touchstart', (e)=>{ e.preventDefault(); startHandler(e); }, {passive:false});
+            container.addEventListener('mousemove', (e)=>{ if(state.pointer.down) updatePtr(e); });
+            container.addEventListener('touchmove', (e)=>{ e.preventDefault(); updatePtr(e); }, {passive:false});
+            window.addEventListener('mouseup', ()=>{ state.pointer.down=false; });
+            window.addEventListener('touchend', ()=>{ state.pointer.down=false; });
+
+            // 按钮事件绑定
+            document.getElementById('audioBtn').onclick = (e) => {
+                if(e) e.stopPropagation(); AudioEngine.init(); AudioEngine.enabled = !AudioEngine.enabled;
+                const btn = document.getElementById('audioBtn');
+                const icon = document.getElementById('audio-icon');
+                if(AudioEngine.enabled) { 
+                    icon.innerText = "🔊"; btn.style.color = "green"; AudioEngine.play(440);
+                } else { 
+                    icon.innerText = "🔇"; btn.style.color = "black"; 
+                }
+            };
+
+            document.getElementById('speedBtn').onclick = (e) => {
+                if(e) e.stopPropagation();
+                state.speedLevel = (state.speedLevel % 5) + 1;
+                document.getElementById('speed-text').innerText = `⚡ ${state.speedLevel}x`;
+                state.currentSpawnRate = Math.floor(CONFIG.baseSpawnRate / state.speedLevel);
+                if(AudioEngine.enabled) AudioEngine.play(440 + state.speedLevel*100, 'sawtooth');
+            };
+
+            document.getElementById('bsodBtn').onclick = (e) => {
+                if(e) e.stopPropagation();
+                state.bsodEnabled = !state.bsodEnabled;
+                const btn = document.getElementById('bsodBtn');
+                const txt = document.getElementById('bsod-text');
+                if(state.bsodEnabled) { btn.style.color = "darkred"; txt.innerText = "💣 开启"; }
+                else { btn.style.color = "gray"; txt.innerText = "💣 关闭"; }
+            };
+
+            document.getElementById('rebootBtn').onclick = (e) => { if(e) e.stopPropagation(); window.systemReboot(); };
+
+            // 启动游戏
+            for(let i=0; i<5; i++) spawn(0);
+            loop();
+        };
+
+    </script>
+</body>
+</html>
+
 
