@@ -38,11 +38,16 @@ Windows 98 Gravity OS 是一款基于 Web 的重力合成游戏，运行在一�
 1. 下载 index.html 文件。
 2. 使用任意现代浏览器 (Chrome, Edge, Firefox, Safari) 打开该文件。
 3. 注意：由于浏览器的自动播放策略，进入页面后请先点击游戏窗口内的“音效”按钮以激活音频引擎。
+
 🛠️ 技术栈 (Tech Stack)
 • HTML5 Canvas: 用于高性能的游戏渲染（60fps）。
+
 • Vanilla JavaScript: 无任何第三方库依赖 (No jQuery, No React)，纯原生实现。
+
 • Web Audio API: 用于生成复古的合成器音效。
+
 • CSS3: 实现 Windows 98 的 UI 样式和 CRT 滤镜效果。
+
 📝 版本历史
 • v1.0: 基础重力合成玩法。
 • v2.0: 引入 Windows 98 视觉风格。
